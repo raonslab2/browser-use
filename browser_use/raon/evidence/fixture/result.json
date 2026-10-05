@@ -1,0 +1,12 @@
+{
+  "final_result": "Action complete",
+  "structured_result": {
+    "title": "RAON fixture",
+    "items": [
+      "Alpha",
+      "Bravo",
+      "Charlie"
+    ],
+    "result": "Action complete"
+  }
+}

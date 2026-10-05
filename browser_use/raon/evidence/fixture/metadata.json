@@ -1,0 +1,50 @@
+{
+  "run_id": "one-pc-dotenv-fixed",
+  "status": "COMPLETED",
+  "mode": "fixture",
+  "model_execution": "NONE_DETERMINISTIC",
+  "final_result": "Action complete",
+  "structured_result": {
+    "title": "RAON fixture",
+    "items": [
+      "Alpha",
+      "Bravo",
+      "Charlie"
+    ],
+    "result": "Action complete"
+  },
+  "visited_urls": [
+    "http://127.0.0.1:38019"
+  ],
+  "actions": [
+    "navigate",
+    "click",
+    "extract_fixture"
+  ],
+  "evidence": [
+    {
+      "path": "result.json",
+      "sha256": "26028488be790b3e7b33c84ca9c1993894762fc2758da4ce2786034f9fe91a4b",
+      "bytes": 199
+    },
+    {
+      "path": "actions.json",
+      "sha256": "2c31d7ac17666343a1b03dd5e922c02c876d76fa43cf3cf6f4a95330654e2508",
+      "bytes": 41
+    },
+    {
+      "path": "last.png",
+      "sha256": "6f6fe13d897d696bc2586e19b07c8e129a36f1b7f87adaf20baefbe37371fe32",
+      "bytes": 18033
+    }
+  ],
+  "error_kind": null,
+  "failure_stage": null,
+  "upstream_source_revision": "7be96ed8bafa8dfe1eef228b59cf5c884b8b2431",
+  "source_revision": "2e7146df8fa9418afcb0424d4647ebc8e3505d37",
+  "adapter_revision": "2e7146df8fa9418afcb0424d4647ebc8e3505d37",
+  "browser_identity": "Chrome/151.0.7922.34",
+  "model_identity": null,
+  "cleanup": "PASS",
+  "worker_exit_status": 0
+}

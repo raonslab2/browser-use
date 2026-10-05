@@ -176,6 +176,7 @@ reportMissingTypeStubs = false
 
 [tool.hatch.build]
 include = [
+    "raon_browser.py",
     "browser_use/**/*.py",
     "!browser_use/**/tests/*.py",
     "!browser_use/**/tests.py",
@@ -187,6 +188,9 @@ include = [
     "!tests/**/*.py",
     "!debug/*",
 ]
+
+[tool.hatch.build.targets.wheel.force-include]
+"raon_browser.py" = "raon_browser.py"
 
 [tool.pytest.ini_options]
 timeout = 300

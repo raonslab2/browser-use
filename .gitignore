@@ -85,3 +85,7 @@ product_extraction.py
 plot.py
 
 .claude/
+
+# RAON request-local execution artifacts and bootstrap tools
+.raon-tools/
+.raon-runs/

@@ -1,0 +1,31 @@
+{
+  "run_id": "real-agent-dotenv-fixed",
+  "status": "REAL_BROWSER_AGENT_LLM_BLOCKED",
+  "mode": "agent",
+  "model_execution": "NOT_RUN",
+  "final_result": null,
+  "structured_result": null,
+  "visited_urls": [],
+  "actions": [],
+  "evidence": [
+    {
+      "path": "result.json",
+      "sha256": "25490b47c1c6fbba55862cfbee44626bcf5c7d75d898cf5028349abd123985b2",
+      "bytes": 56
+    },
+    {
+      "path": "actions.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    }
+  ],
+  "error_kind": "MISSING_MODEL_CREDENTIAL",
+  "failure_stage": "model_configuration",
+  "upstream_source_revision": "7be96ed8bafa8dfe1eef228b59cf5c884b8b2431",
+  "source_revision": "2e7146df8fa9418afcb0424d4647ebc8e3505d37",
+  "adapter_revision": "2e7146df8fa9418afcb0424d4647ebc8e3505d37",
+  "browser_identity": null,
+  "model_identity": null,
+  "cleanup": "PASS",
+  "worker_exit_status": 0
+}
