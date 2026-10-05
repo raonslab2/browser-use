@@ -69,6 +69,7 @@ def run(config: RunInput, workspace: Path | None = None) -> RunResult:
 	)
 	env = dict(os.environ)
 	env.update(
+		PYTHON_DOTENV_DISABLED='1',
 		ANONYMIZED_TELEMETRY='false',
 		BROWSER_USE_CLOUD_SYNC='false',
 		BROWSER_USE_SETUP_LOGGING='false',

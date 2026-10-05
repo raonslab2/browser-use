@@ -55,6 +55,7 @@ ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
 Upstream regression command (test process only):
 
 ```bash
+mkdir -p .raon-runs/regression-tmp .raon-runs/regression-config
 IN_DOCKER=true TMPDIR=/proc/self/cwd/.raon-runs/regression-tmp \
 BROWSER_USE_CONFIG_DIR="$PWD/.raon-runs/regression-config" \
 ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \

@@ -41,7 +41,7 @@ Create a task JSON inside the Request workspace, with no credentials:
 ```
 
 ```bash
-.venv/bin/python -m browser_use.raon run --task-file task.json --output .raon-runs
+.venv/bin/python -m raon_browser run --task-file task.json --output .raon-runs
 ```
 
 Run from the project workspace. Output must be a relative path resolving strictly
@@ -64,9 +64,15 @@ read-only task. Default inference adapter is `ChatBrowserUse`, using an existing
 `BROWSER_USE_API_KEY` from the execution environment. Explicit `openai`, `anthropic`
 and `google` selections use their corresponding existing environment keys and
 require the caller's exact model name. No model names are rewritten. Development
-CODEX/CLAUDE accounts do not provide Browser-Use inference credentials. The worker
-runs in a private directory and does not load a repository `.env` or personal
-browser profile. A missing selected credential yields
+CODEX/CLAUDE accounts do not provide Browser-Use inference credentials.
+The top-level `raon_browser` bootstrap sets `PYTHON_DOTENV_DISABLED=1` before
+importing Browser-Use, and the supervisor also sets it for its worker. This uses
+the pinned python-dotenv suppression setting without modifying upstream code.
+The worker runs in a private directory and does not load a repository `.env` or
+personal browser profile. Direct `python -m browser_use.raon` execution is retired
+and refuses to start a run: that package imports upstream before it can enforce
+the dotenv boundary. For library callers, disable dotenv before the first
+Browser-Use import; use the top-level CLI for the supported credential boundary. A missing selected credential yields
 `REAL_BROWSER_AGENT_LLM_BLOCKED` with `NOT_RUN`; it creates no browser and does
 not fall back to synthetic inference.
 
@@ -118,13 +124,13 @@ input/result contract and native Browser-Use execution.
 ## Validation
 
 ```bash
-ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
+PYTHON_DOTENV_DISABLED=1 ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
   .venv/bin/pytest tests/raon tests/ci/test_action_timeout.py \
   tests/ci/test_registry_empty_url_domain_filter.py \
   tests/ci/infrastructure/test_registry_core.py \
   tests/ci/infrastructure/test_registry_validation.py \
   -o addopts='' -o log_cli=false -q
-.venv/bin/pre-commit run --files browser_use/raon/*.py tests/raon/test_adapter.py
+.venv/bin/pre-commit run --files raon_browser.py pyproject.toml browser_use/raon/*.py tests/raon/test_adapter.py
 ```
 
 Set `RAON_BROWSER_EXECUTABLE` for the real browser integration tests; without it

@@ -163,7 +163,7 @@ def test_native_cancel_cleanup():
 	task_file.parent.mkdir(exist_ok=True)
 	task_file.write_text(cfg.model_dump_json())
 	process = subprocess.Popen(
-		[sys.executable, '-m', 'browser_use.raon', 'run', '--task-file', str(task_file)],
+		[sys.executable, '-m', 'raon_browser', 'run', '--task-file', str(task_file)],
 		cwd=WORKSPACE,
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
@@ -285,7 +285,7 @@ def test_native_browser_timeout_cleanup():
 	task_file = WORKSPACE / '.raon-runs' / f'{cfg.run_id}-task.json'
 	task_file.write_text(cfg.model_dump_json())
 	process = subprocess.Popen(
-		[sys.executable, '-m', 'browser_use.raon', 'run', '--task-file', str(task_file)],
+		[sys.executable, '-m', 'raon_browser', 'run', '--task-file', str(task_file)],
 		cwd=WORKSPACE,
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
@@ -316,3 +316,64 @@ def test_native_browser_timeout_cleanup():
 			os.killpg(process.pid, signal.SIGKILL)
 			process.wait()
 		task_file.unlink(missing_ok=True)
+
+
+@pytest.mark.parametrize('explicit_credential', [False, True])
+def test_bootstrap_dotenv_boundary(monkeypatch, tmp_path, explicit_credential):
+	"""Fresh-process native imports ignore a synthetic repository .env, without API calls."""
+	# Symlink the unmodified native package into a controlled repository fixture.
+	# This preserves the real import-time load_dotenv call sites and avoids touching
+	# any existing .env or other ignored files in the actual project checkout.
+	(tmp_path / 'browser_use').symlink_to(WORKSPACE / 'browser_use', target_is_directory=True)
+	(tmp_path / 'raon_browser.py').symlink_to(WORKSPACE / 'raon_browser.py')
+	(tmp_path / '.env').write_text('BROWSER_USE_API_KEY=dotenv-test-canary\nRAON_DOTENV_SENTINEL=dotenv-read\n')
+	env = dict(os.environ)
+	for name in ('PYTHON_DOTENV_DISABLED', 'BROWSER_USE_API_KEY', 'RAON_DOTENV_SENTINEL'):
+		env.pop(name, None)
+	if explicit_credential:
+		env['BROWSER_USE_API_KEY'] = 'explicit-test-canary'
+	# Reproduce the review finding with native import alone, without invoking a model.
+	unsafe = subprocess.run(
+		[
+			sys.executable,
+			'-c',
+			"import browser_use,os,json; print(json.dumps({'dotenv_loaded': 'RAON_DOTENV_SENTINEL' in os.environ}))",
+		],
+		cwd=tmp_path,
+		env=env,
+		capture_output=True,
+		text=True,
+		timeout=30,
+	)
+	assert unsafe.returncode == 0
+	assert json.loads(unsafe.stdout)['dotenv_loaded'] is True
+	probe = """
+import os,json
+from raon_browser import configure_environment
+configure_environment()
+import browser_use
+from browser_use.raon.worker import create_llm
+from browser_use.raon.contracts import RunInput
+model = create_llm(RunInput(task='no inference',allowed_domains=['example.com']))
+print(json.dumps({'dotenv_loaded': 'RAON_DOTENV_SENTINEL' in os.environ,
+    'explicit_preserved': os.environ.get('BROWSER_USE_API_KEY') == 'explicit-test-canary',
+    'model_blocked': model is None}))
+"""
+	result = subprocess.run([sys.executable, '-c', probe], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
+	assert result.returncode == 0
+	assert json.loads(result.stdout) == {
+		'dotenv_loaded': False,
+		'explicit_preserved': explicit_credential,
+		'model_blocked': not explicit_credential,
+	}
+	assert 'dotenv-test-canary' not in result.stdout + result.stderr
+	assert 'explicit-test-canary' not in result.stdout + result.stderr
+
+
+def test_nested_cli_refuses_unsafe_bootstrap(monkeypatch):
+	env = dict(os.environ, PYTHON_DOTENV_DISABLED='1', BROWSER_USE_SETUP_LOGGING='false')
+	result = subprocess.run(
+		[sys.executable, '-m', 'browser_use.raon'], cwd=WORKSPACE, env=env, capture_output=True, text=True, timeout=30
+	)
+	assert result.returncode == 2
+	assert json.loads(result.stdout)['error_kind'] == 'SAFE_BOOTSTRAP_REQUIRED'

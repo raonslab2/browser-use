@@ -38,4 +38,6 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-	raise SystemExit(main())
+	# This package's parent imports dotenv before nested __main__ can configure it.
+	print(json.dumps({'status': 'FAILED', 'error_kind': 'SAFE_BOOTSTRAP_REQUIRED', 'entrypoint': 'python -m raon_browser'}))
+	raise SystemExit(2)
