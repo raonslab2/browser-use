@@ -28,18 +28,18 @@ adapters, upstream history, MIT LICENSE or other projects were needed.
 Plan implemented: private worker wrapping native APIs; typed bounded CLI input;
 atomic run reservation; minimal result/evidence projection; process cancellation
 and bounded cleanup; native local fixture; separate model-blocked result. No
-AgentOpt architecture was copied. Only `.gitignore`, `browser_use/raon/` and
-`tests/raon/` are changed.
+AgentOpt architecture was copied. Changes are additive in `.gitignore`, `browser_use/raon/`, `tests/raon/`,
+`raon_browser.py`, plus four packaging lines in `pyproject.toml`.
 
 ## Actual checks and exit statuses
 
 | Check | Actual result |
 | --- | --- |
-| Adapter contracts/lifecycle/native-browser tests | 20 passed, exit 0, 39.27 s |
+| Adapter contracts/lifecycle/native-browser tests | 23 passed, exit 0, 42.20 s |
 | Upstream focused regression | 43 passed, exit 0, 69.71 s |
 | pre-commit, every applicable configured hook | PASS, exit 0 |
 | Explicit pyright over adapter and tests | 0 errors, exit 0 |
-| uv build, sdist and wheel | PASS, exit 0; wheel includes all five adapter modules |
+| uv build, sdist and wheel | PASS, exit 0; wheel includes all five adapter modules plus the top-level safe bootstrap |
 | Fixed code commit internal fixture CLI | COMPLETED, exit 0 |
 | Real Agent CLI credential boundary | REAL_BROWSER_AGENT_LLM_BLOCKED, exit 2 |
 
@@ -48,7 +48,7 @@ Adapter command:
 ```bash
 RAON_DISABLE_SANDBOX=1 \
 RAON_BROWSER_EXECUTABLE=/home/ubuntu/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome \
-ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
+PYTHON_DOTENV_DISABLED=1 ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
 .venv/bin/pytest tests/raon -o addopts='' -o log_cli=false -q
 ```
 
@@ -58,7 +58,7 @@ Upstream regression command (test process only):
 mkdir -p .raon-runs/regression-tmp .raon-runs/regression-config
 IN_DOCKER=true TMPDIR=/proc/self/cwd/.raon-runs/regression-tmp \
 BROWSER_USE_CONFIG_DIR="$PWD/.raon-runs/regression-config" \
-ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
+PYTHON_DOTENV_DISABLED=1 ANONYMIZED_TELEMETRY=false BROWSER_USE_CLOUD_SYNC=false \
 .venv/bin/pytest tests/ci/test_action_timeout.py \
 tests/ci/test_registry_empty_url_domain_filter.py \
 tests/ci/infrastructure/test_registry_core.py \
@@ -75,8 +75,8 @@ changing Browser-Use core or using global temp profiles for product runs.
 
 ## Fixed commit one-PC runtime smoke
 
-Code commit: `5965cb7921e25c23cfbbddf8bd35488b5d0d6c00`.
-Run ID: `one-pc-release-5965cb792`.
+Code commit: `2e7146df8fa9418afcb0424d4647ebc8e3505d37`.
+Run ID: `one-pc-dotenv-fixed`.
 Browser: actual user-installed `Chrome/151.0.7922.34`, headless, isolated profile.
 Model execution: `NONE_DETERMINISTIC`; this is not real Agent inference.
 Native Tools navigation and DOM-indexed click, then fixture extraction returned
@@ -97,8 +97,8 @@ Runtime smoke commands:
 
 ```bash
 RAON_DISABLE_SANDBOX=1 RAON_BROWSER_EXECUTABLE=/home/ubuntu/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome \
-.venv/bin/python -m browser_use.raon run --task-file .raon-runs/release-task.json
-.venv/bin/python -m browser_use.raon run --task-file .raon-runs/real-task.json
+.venv/bin/python -m raon_browser run --task-file .raon-runs/dotenv-fixture-task.json
+.venv/bin/python -m raon_browser run --task-file .raon-runs/dotenv-agent-task.json
 ```
 
 The fixture task file used mode fixture, controlled_page/capture_screenshot true,
@@ -136,3 +136,39 @@ Other active Requests are not enumerated by the available request-scoped tool.
 No Windows runner, remote screen viewing, repeated RPA scheduler/task UI or login
 automation is implemented. Next priorities: Windows 2PC Local Runner, then
 recurring RPA Tasks using the existing contract.
+
+## Independent review finding and remediation
+
+CLAUDE review attempt 1 at `b5c50702ca42b887629f76246184207b301b693e`
+identified one blocking finding: native import-time `load_dotenv()` discovers a
+checkout `.env`, so changing worker cwd alone did not enforce the claimed
+explicit-environment credential boundary. This finding was reproduced using a
+synthetic `.env` in a separate symlinked package fixture, without touching any
+existing repository `.env`, accessing real keys or making model calls.
+
+Fixed code commit `2e7146df8fa9418afcb0424d4647ebc8e3505d37` adds the minimal
+`python -m raon_browser` bootstrap. It sets native python-dotenv's
+`PYTHON_DOTENV_DISABLED=1` before the first Browser-Use import. The supervisor sets
+it again in the worker environment. The old nested module CLI refuses execution,
+because it cannot configure dotenv before its parent package imports. Browser-Use
+core remains unchanged. Two fresh-process tests reproduce the unsafe native
+import and prove that the bootstrap ignores the synthetic file while preserving
+an explicitly supplied process credential. No API calls are made in these tests.
+A separate test verifies the nested CLI refuses to start. Adapter suite: 23 PASS;
+additional fresh-process reproductions: 2 PASS; pre-commit and explicit pyright:
+PASS; wheel/sdist rebuild: PASS. The wheel includes and successfully runs the safe
+bootstrap in its own isolated venv, with fixture COMPLETED and cleanup PASS.
+
+The fixed-commit one-PC smoke/evidence above supersedes the earlier pre-review
+fixture snapshot. The final real Agent attempt remains model-blocked with NOT_RUN.
+The upstream regression reproduction command now creates its required TMPDIR
+and config directories first. The independent reviewer also reproduced the 43
+upstream cases after creating that directory, both package builds, wheel fixture
+execution and every versioned evidence digest; no real Agent inference was run.
+Review attempt 2 on the revised fixed commit is pending.
+
+GitHub Actions permissions report enabled, but the workflow registry contains
+zero workflows and no branch/PR run/check is reported. CI is NOT_RUN, not PASS.
+No workflow registration, billing setting, branch protection or required-check
+configuration was changed to force a result. Main currently remains the original
+baseline; PR #1 is draft pending successful re-review.
